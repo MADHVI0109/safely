@@ -1,0 +1,93 @@
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg,#fae6f3 30%,#f8fff8 100%);
+  margin: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+.main-container {
+  max-width: 400px;
+  background: white;
+  margin: 50px auto 0;
+  padding: 30px 18px 34px 18px;
+  border-radius: 20px;
+  box-shadow: 0 6px 40px rgba(255,105,180,0.13), 0 2px 4px rgba(0,0,0,0.06);
+  text-align: center;
+  position: relative;
+}
+.logo span {
+  font-size: 48px;
+  filter: drop-shadow(0 0 2px #4384ff);
+  margin-bottom: 2px;
+}
+.app-name {
+  font-size: 2.4rem;
+  font-weight:700;
+  margin-bottom:8px;
+}
+.app-tagline {
+  margin-top: 0;
+  margin-bottom: 6px;
+  font-size: 1.1rem;
+  color: #c71585;
+}
+.slogan {
+  margin-bottom: 17px;
+  font-size: 1rem;
+  color:#666;
+}
+.button-group{
+  margin:8px 0 8px 0;
+}
+button {
+  display: block;
+  width: 93%;
+  margin: 7px auto;
+  padding: 13px 0;
+  font-size: 1.08rem;
+  background: linear-gradient(90deg,#ff69b4 60%,#c71585 100%);
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  box-shadow:0 2px 8px rgba(255,105,180,0.08);
+  cursor:pointer;
+  font-weight:550;
+  transition: background 0.18s, box-shadow 0.18s;
+}
+button:hover {
+  background: linear-gradient(90deg, #c71585 60%, #ff69b4 100%);
+  box-shadow: 0 6px 18px rgba(255,105,180,0.15);
+}
+#output {
+  margin-top: 13px;
+  font-size: 1.08rem;
+  color: #222;
+  background: #fff4fa;
+  border-radius:8px;
+  padding:12px 5px;
+  min-height:32px;
+  text-align:left;
+  box-sizing: border-box;
+  box-shadow: 0 1px 8px #faa2 0.04;
+}
+#loggedOut button {
+  margin: 0 auto;
+}
+#loggedIn .welcome {
+  font-weight:600;color:#2188ff;margin-bottom:5px;font-size:1rem;
+}
+#resources {
+  margin-top:10px;
+  border-top:1px solid #ffe5f0;
+  padding-top:7px;
+}
+#resources a {
+  color:#c71585;
+  text-decoration:none;
+  font-size:1.02rem;
+}
+#resources a:hover{
+  text-decoration:underline;
+}
+@media (max-width:540px){
+  .main-container{max-width:99vw;padding:10px 2vw;}
+}
