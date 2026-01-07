@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>SafeLY | Women Safety App</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+  <!-- Firebase CDN (v8 for compat and global `firebase`) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script>
+    // Replace with your Firebase config
+    const firebaseConfig = {
+  apiKey: "AIzaSyDBnWIxTf2c-H35Fi6bIOwjRITydPS8TMk",
+  authDomain: "hackathon-58c87.firebaseapp.com",
+  databaseURL: "https://hackathon-58c87-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "hackathon-58c87",
+  storageBucket: "hackathon-58c87.firebasestorage.app",
+  messagingSenderId: "766653305478",
+  appId: "1:766653305478:web:a9fb2155d181c33085b707"
+};
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+  </script>
+</head>
+<body>
+  <div class="main-container">
+    <div class="logo"><span>🛡️</span></div>
+    <h1 class="app-name">Safe<span style="color:#ff69b4;">LY</span></h1>
+    <h3 class="app-tagline">Empowering Women.<br>One Click at a Time.</h3>
+    <p class="slogan">SOS, log your journeys, tag places, or call for help!</p>
+
+    <div id="loggedOut">
+      <button id="loginBtn">Login with Google</button>
+    </div>
+
+    <div id="loggedIn" style="display:none;">
+      <div class="welcome">Welcome, <span id="currentName"></span>!</div>
+      <div class="button-group">
+        <button id="sosBtn">🚨 SOS Emergency</button>
+        <button id="alarmBtn">🔔 Activate Alarm</button>
+        <button id="fakeCallBtn">📱 Fake Call</button>
+        <button id="tagSafeBtn">✅ Tag as Safe Place</button>
+        <button id="tagUnsafeBtn">❌ Tag as Unsafe Place</button>
+        <button id="viewSafePlacesBtn">🌐 View My Tagged Places</button>
+      </div>
+      <div class="button-group">
+        <button id="contactsBtn">Add Emergency Contact</button>
+        <button id="listContactsBtn">Show My Contacts</button>
+        <button id="logJourneyBtn">Log Journey/Vehicle</button>
+        <button id="listJourneysBtn">Show My Journeys</button>
+        <button id="listSOSBtn">Show My SOS Records</button>
+        <button id="logoutBtn">Logout</button>
+      </div>
+      <div id="resources">
+        <h4>Quick Resources</h4>
+        <a href="tel:112">📞 Call Emergency: 112</a><br>
+        <a href="https://wa.me/?text=I%20need%20emergency%20help!">💬 WhatsApp SOS</a><br>
+        <a href="https://www.google.com/maps">🗺️ Open Google Maps</a>
+      </div>
+    </div>
+    <div id="output"></div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
