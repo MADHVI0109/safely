@@ -1,3 +1,4 @@
+const $ = id => document.getElementById(id);
 // Only ONE declaration at the very top!
 let currentUser = null;
 
@@ -161,4 +162,5 @@ $.viewSafePlacesBtn.onclick = async function() {
 };
 
 // --- Ready! ---
+
 window.onload = ()=>showLoggedInUI(false);
