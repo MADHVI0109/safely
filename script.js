@@ -153,3 +153,47 @@ $('listSOSBtn').onclick = async function(){
   });
   showOutput(msg);
 };
+document.getElementById('fakeCallBtn').onclick = function() {
+  let call = new Audio("https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa41f7.mp3");
+  call.play()
+    .then(() => showOutput('Fake call ringing!'))
+    .catch(err => showOutput("Couldn't play sound: " + err));
+};
+document.getElementById('alarmBtn').onclick = function() {
+  let alarm = new Audio("https://cdn.pixabay.com/audio/2022/08/20/audio_12c7b0e7c9.mp3");
+  alarm.play()
+    .then(() => showOutput('Alarm activated!'))
+    .catch(err => showOutput("Couldn't play sound: " + err));
+};
+function tagPlace(type) {
+  if (!currentUser) return showOutput('Log in first.');
+  if (!navigator.geolocation) return showOutput('Geolocation not supported.');
+  navigator.geolocation.getCurrentPosition(
+    async function(pos) {
+      let tag = { userUid: currentUser.uid, type, lat: pos.coords.latitude, lng: pos.coords.longitude, time: Date.now() };
+      try {
+        await db.collection('places').add(tag);
+        showOutput(`${type==='safe'?'Safe':'Unsafe'} place tagged at ${tag.lat}, ${tag.lng}`);
+      } catch (err) {
+        showOutput('Firebase error: ' + err.message);
+      }
+    }, err => showOutput('Could not get location: ' + err.message)
+  );
+}
+$('listJourneysBtn').onclick = async function(){
+  if(!currentUser) return showOutput('Log in first.');
+  try {
+    let snaps = await db.collection('journeys').where('userUid','==',currentUser.uid).orderBy('timestamp','desc').limit(10).get();
+    if(snaps.empty) return showOutput('No journeys logged!');
+    let msg = 'Your journeys:\n';
+    snaps.forEach(doc=>{
+      let j = doc.data();
+      msg += `• ${j.vehiclePlate} | ${j.driverName} | ${j.driverPhone}\n`;
+    });
+    showOutput(msg);
+  } catch (err) {
+    showOutput('Error loading journeys: ' + err.message);
+  }
+};
+
+
