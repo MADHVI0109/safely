@@ -1,35 +1,42 @@
 const $ = id => document.getElementById(id);
-// Only ONE declaration at the very top!
 let currentUser = null;
 
+// TEST: Prove $ works!
+console.log('Testing $ shortcut:', $('loginBtn'));
+showOutput('If you see this text, $ is working!');
+
 function showOutput(msg) {
-  document.getElementById('output').innerText = msg;
+  $('output').innerText = msg;
 }
 
-// Set up event handlers only after HTML elements are loaded
-document.getElementById('loginBtn').onclick = function () {
+// UI: show section
+function showLoggedInUI(show) {
+  $.loggedIn.style.display = show ? '' : 'none';
+  $.loggedOut.style.display = show ? 'none' : '';
+  if(show) $.currentName.textContent = currentUser.displayName || '';
+}
+
+// Utility to show output/status/messages
+function showOutput(msg) {
+  $.output.innerText = msg;
+}
+
+// --- Authentication ---
+$.loginBtn.onclick = function () {
   const provider = new firebase.auth.GoogleAuthProvider();
   firebase.auth().signInWithPopup(provider)
     .catch(err => showOutput('Login failed: ' + err.message));
 };
 
-document.getElementById('logoutBtn').onclick = function() {
+$.logoutBtn.onclick = function() {
   firebase.auth().signOut();
 };
 
-// Listen for authentication state changes
-firebase.auth().onAuthStateChanged(function(user) {
+firebase.auth().onAuthStateChanged(async function(user) {
   currentUser = user;
-  if (user) {
-    document.getElementById('loggedIn').style.display = '';
-    document.getElementById('loggedOut').style.display = 'none';
-    document.getElementById('currentName').textContent = user.displayName || '';
-    showOutput('Ready.');
-  } else {
-    document.getElementById('loggedIn').style.display = 'none';
-    document.getElementById('loggedOut').style.display = '';
-    showOutput('Please log in!');
-  }
+  showLoggedInUI(!!currentUser);
+  if(currentUser) showOutput('Ready.'), await loadContacts();
+  else showOutput('Please log in!');
 });
 
 // --- SOS Button ---
@@ -162,5 +169,4 @@ $.viewSafePlacesBtn.onclick = async function() {
 };
 
 // --- Ready! ---
-
 window.onload = ()=>showLoggedInUI(false);
