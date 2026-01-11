@@ -1,6 +1,6 @@
 // --- Bootstrap ---
 const $ = id => document.getElementById(id);
-let currentUser = null;
+
 
 function showOutput(msg) {
   $('output').innerText = msg;
@@ -166,6 +166,7 @@ $('alarmBtn').onclick = function() {
   alarm.play().then(()=>showOutput('Alarm sounding!'))
     .catch(err=>showOutput("Can't play sound: " + err));
 };
+
 
 
 
