@@ -5,6 +5,18 @@ let currentUser = null;
 function showOutput(msg) {
   $('output').innerText = msg;
 }
+const firebaseConfig = {
+  apiKey: "AIzaSyDBnWIxTf2c-H35Fi6bIOwjRITydPS8TMk",
+  authDomain: "hackathon-58c87.firebaseapp.com",
+  databaseURL: "https://hackathon-58c87-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "hackathon-58c87",
+  storageBucket: "hackathon-58c87.firebasestorage.app",
+  messagingSenderId: "766653305478",
+  appId: "1:766653305478:web:a9fb2155d181c33085b707"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
 
 // --- Auth ---
 $('loginBtn').onclick = function() {
@@ -166,4 +178,5 @@ $('alarmBtn').onclick = function() {
   alarm.play().then(()=>showOutput('Alarm sounding!'))
     .catch(err=>showOutput("Can't play sound: " + err));
 };
+
 
