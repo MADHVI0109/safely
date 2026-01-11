@@ -61,13 +61,7 @@ $('sosBtn').onclick = ()=>{
   });
 };
 
-// ==== 4. Guardians: Add & List ====
-window.myGuardians = [];
-async function loadGuardians(){
-  if(!currentUser) return;
-  let d = await db.collection("users").doc(currentUser.uid).get();
-  window.myGuardians = (d.exists && d.data().guardians) ? d.data().guardians : [];
-}
+// Add Guardian
 $('addGuardianBtn').onclick = async ()=>{
   if(!currentUser) return showOutput("Log in first.");
   let name = prompt("Guardian name?");
@@ -80,6 +74,14 @@ $('addGuardianBtn').onclick = async ()=>{
   await loadGuardians();
   showOutput("Guardian added: " + name);
 };
+
+// List Guardians
+window.myGuardians = [];
+async function loadGuardians(){
+  if(!currentUser) return;
+  let d = await db.collection("users").doc(currentUser.uid).get();
+  window.myGuardians = (d.exists && d.data().guardians) ? d.data().guardians : [];
+}
 $('listGuardiansBtn').onclick = async ()=>{
   await loadGuardians();
   if(myGuardians.length === 0) showOutput("No guardians yet. Add some!");
@@ -164,3 +166,4 @@ $('alarmBtn').onclick = function() {
   alarm.play().then(()=>showOutput('Alarm sounding!'))
     .catch(err=>showOutput("Can't play sound: " + err));
 };
+
