@@ -1,171 +1,210 @@
 // --- Bootstrap ---
 const $ = id => document.getElementById(id);
+let currentUser = null;
 
+// TEST: Prove $ works!
+console.log('Testing $ shortcut:', $('loginBtn'));
+showOutput('If you see this text, $ is working!');
 
 function showOutput(msg) {
   $('output').innerText = msg;
 }
 
-// --- Auth ---
-$('loginBtn').onclick = function() {
+// UI: show section
+function showLoggedInUI(show) {
+  $.loggedIn.style.display = show ? '' : 'none';
+  $.loggedOut.style.display = show ? 'none' : '';
+  if(show) $.currentName.textContent = currentUser.displayName || '';
+}
+
+// Utility to show output/status/messages
+function showOutput(msg) {
+  $.output.innerText = msg;
+}
+
+// --- Authentication ---
+$.loginBtn.onclick = function () {
   const provider = new firebase.auth.GoogleAuthProvider();
   firebase.auth().signInWithPopup(provider)
     .catch(err => showOutput('Login failed: ' + err.message));
 };
-$('logoutBtn').onclick = function() {
+
+$.logoutBtn.onclick = function() {
   firebase.auth().signOut();
 };
-auth.onAuthStateChanged(async (user)=>{
+
+firebase.auth().onAuthStateChanged(async function(user) {
   currentUser = user;
-  if(user){
-    $('loginBtn').style.display = "none";
-    $('userPanel').style.display = "";
-    $('userName').innerText = "Welcome, " + user.displayName;
-    $("mainUI").style.display="";
-    await loadGuardians();
-    await showOnMap();
-  } else{
-    $('loginBtn').style.display = "";
-    $('userPanel').style.display = "none";
-    $("mainUI").style.display="none";
-    showOutput("Please log in.");
-  }
+  showLoggedInUI(!!currentUser);
+  if(currentUser) showOutput('Ready.'), await loadContacts();
+  else showOutput('Please log in!');
 });
 
-// ==== 3. SOS Feature with WhatsApp Alert ====
-$('sosBtn').onclick = ()=>{
-  if(!currentUser) return showOutput("Log in first.");
-  if(!navigator.geolocation) return showOutput('Geolocation not supported.');
-  showOutput("Grabbing location...");
-  navigator.geolocation.getCurrentPosition(async pos=>{
-    let lat = pos.coords.latitude, lng = pos.coords.longitude;
-    await db.collection("sosRecords").add({
-      user: currentUser.displayName,
-      uid: currentUser.uid,
-      lat, lng,
+// --- Updated SOS Button with Contact Sharing ---
+$.sosBtn.onclick = async function () {
+  if (!currentUser) return showOutput('Log in first.');
+  if (!navigator.geolocation) return showOutput('Geolocation not supported in this browser.');
+
+  showOutput('Fetching emergency location...');
+
+  navigator.geolocation.getCurrentPosition(async function(pos) {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+    const timestamp = new Date().toLocaleString();
+
+    // 1. Log the SOS event to Firebase
+    await db.collection('sosRecords').add({
+      userUid: currentUser.uid,
+      userName: currentUser.displayName,
+      location: { lat, lng },
       time: Date.now()
     });
-    showOutput("🆘 SOS Sent! Notifying guardians...");
 
-    // WhatsApp alert to all guardians
-    if(window.myGuardians && myGuardians.length){
-      let msg = encodeURIComponent(`SOS! I need help. My location: https://maps.google.com/?q=${lat},${lng}`);
-      myGuardians.forEach(g =>
-        window.open(`https://wa.me/${g.phone.replace(/\D/g,"")}?text=${msg}`,'_blank')
-      );
-    } else {
-      showOutput("No guardians to notify! SOS location saved.");
+    // 2. Fetch your saved emergency contacts
+    const doc = await db.collection('users').doc(currentUser.uid).get();
+    const contacts = doc.exists ? (doc.data().emergencyContacts || []) : [];
+
+    if (contacts.length === 0) {
+      showOutput('SOS logged, but no emergency contacts found to notify.');
+      return;
     }
-  },err=>{
-    showOutput("Unable to get location: "+err.message);
-  });
+
+    // 3. Prepare the message for sharing
+    const message = encodeURIComponent(
+      `🚨 EMERGENCY SOS! I need help. \nMy Location: ${mapsUrl} \nSent at: ${timestamp}`
+    );
+
+    // 4. Send to the first contact via WhatsApp
+    // Note: The phone number must include the country code (e.g., 919876543210)
+    const primaryContact = contacts[0].phone; 
+    const shareUrl = `https://wa.me/${primaryContact}?text=${message}`;
+
+    showOutput('Location captured! Opening sharing app...');
+    
+    // Opens the WhatsApp sharing link in a new tab/app
+    window.open(shareUrl, '_blank');
+
+  }, (err) => {
+    showOutput('Location error: ' + err.message);
+  }, { enableHighAccuracy: true });
 };
 
-// Add Guardian
-$('addGuardianBtn').onclick = async ()=>{
-  if(!currentUser) return showOutput("Log in first.");
-  let name = prompt("Guardian name?");
-  let phone = prompt("Guardian phone (country code, no plus, e.g. 919999999999):");
-  if(!name || !phone) return showOutput("Name & phone required.");
-  let g = {name, phone};
-  await db.collection("users").doc(currentUser.uid).set({
-    guardians: firebase.firestore.FieldValue.arrayUnion(g)
-  },{merge:true});
-  await loadGuardians();
-  showOutput("Guardian added: " + name);
-};
-
-// List Guardians
-window.myGuardians = [];
-async function loadGuardians(){
+// --- Emergency Contact Features ---
+async function loadContacts() {
   if(!currentUser) return;
-  let d = await db.collection("users").doc(currentUser.uid).get();
-  window.myGuardians = (d.exists && d.data().guardians) ? d.data().guardians : [];
+  const doc = await db.collection('users').doc(currentUser.uid).get();
+  window.myContacts = doc.exists && doc.data().emergencyContacts ? doc.data().emergencyContacts : [];
 }
-$('listGuardiansBtn').onclick = async ()=>{
-  await loadGuardians();
-  if(myGuardians.length === 0) showOutput("No guardians yet. Add some!");
-  else showOutput("Guardians:\n" + myGuardians.map(g=>`${g.name}: ${g.phone}`).join("\n"));
+$.contactsBtn.onclick = async function () {
+  if (!currentUser) return showOutput('Log in first.');
+  const name = prompt('Contact name?');
+  const phone = prompt('Contact phone (with country code, e.g. +91)?');
+  if (!name || !phone) return showOutput('Name & phone required.');
+  const contact = { name, phone };
+  await db.collection('users').doc(currentUser.uid).set(
+    { emergencyContacts: firebase.firestore.FieldValue.arrayUnion(contact) }, { merge: true }
+  );
+  await loadContacts();
+  showOutput('Added contact: ' + name);
 };
-// ==== 5. Journey Log/History ====
-$('logJourneyBtn').onclick = async ()=>{
-  if(!currentUser) return showOutput("Log in first.");
-  let plate = prompt("Vehicle Plate:");
-  let driver = prompt("Driver Name:");
-  let driverPhone = prompt("Driver Phone:");
-  if(!plate || !driver || !driverPhone) return showOutput("All details required.");
-  await db.collection("journeys").add({
-    uid: currentUser.uid, plate, driver, driverPhone, time: Date.now()
+$.listContactsBtn.onclick = async function() {
+  if (!currentUser) return showOutput('Log in first.');
+  await loadContacts();
+  showOutput('Your contacts:\n' + (myContacts.length ? myContacts.map(c=>`${c.name} (${c.phone})`).join('\n') : '(No contacts added)'));
+};
+
+// --- Journey Features ---
+$.logJourneyBtn.onclick = async function () {
+  if (!currentUser) return showOutput('Log in first.');
+  const vehiclePlate = prompt('Vehicle Number Plate:');
+  const driverName = prompt('Driver Name:');
+  const driverPhone = prompt('Driver Phone:');
+  if (!vehiclePlate || !driverName || !driverPhone) return showOutput('All journey details required.');
+  await db.collection('journeys').add({
+    userUid: currentUser.uid, vehiclePlate, driverName, driverPhone, timestamp: Date.now()
   });
-  showOutput("Journey logged for " + plate);
+  showOutput('Journey logged: ' + vehiclePlate);
 };
-$('listJourneysBtn').onclick = async ()=>{
-  if(!currentUser) return showOutput("Log in first.");
-  let snaps = await db.collection("journeys")
-    .where("uid","==",currentUser.uid)
-    .orderBy("time","desc").limit(8).get();
-  if(snaps.empty) return showOutput("No journeys found!");
-  let msg = "Recent journeys:\n";
-  snaps.forEach(d=>{
-    let j = d.data(), t = new Date(j.time).toLocaleString();
-    msg += `• (${t}) ${j.plate} - ${j.driver} (${j.driverPhone})\n`;
+$.listJourneysBtn.onclick = async function() {
+  if (!currentUser) return showOutput('Log in first.');
+  const snaps = await db.collection('journeys').where('userUid', '==', currentUser.uid).orderBy('timestamp','desc').limit(10).get();
+  if(snaps.empty) return showOutput('No journeys logged!');
+  let out = 'Your recent journeys:\n';
+  snaps.forEach(doc=>{
+    let j = doc.data();
+    out += `• ${j.vehiclePlate} | ${j.driverName} | 📞${j.driverPhone}\n`;
+  });
+  showOutput(out);
+};
+
+// --- SOS Records ---
+$.listSOSBtn.onclick = async function() {
+  if (!currentUser) return showOutput('Log in first.');
+  const snaps = await db.collection('sosRecords').where('userUid', '==', currentUser.uid).orderBy('timestamp','desc').limit(10).get();
+  if(snaps.empty) return showOutput('No SOS sent yet!');
+  let out = 'Your SOS records:\n';
+  snaps.forEach(doc=>{
+    let s = doc.data();
+    let d = new Date(s.timestamp).toLocaleString();
+    out += `• ${d} at (${s.location.lat},${s.location.lng})\n`;
+  });
+  showOutput(out);
+};
+
+// --- Fake Call ---
+$.fakeCallBtn.onclick = function() {
+  // You can use your own audio file (put in /assets/), or online link:
+  let audio = new Audio("https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa41f7.mp3"); // Example ringtone
+  audio.play();
+  showOutput('Fake call: Pretend your phone is ringing!');
+};
+
+// --- Alarm Button ---
+$.alarmBtn.onclick = function() {
+  let audio = new Audio("https://cdn.pixabay.com/audio/2022/08/20/audio_12c7b0e7c9.mp3"); // Example loud alarm
+  audio.play();
+  showOutput('Alarm activated! Attention drawn.');
+};
+
+// --- Safe/Unsafe Places ---
+function tagPlace(type) {
+  if (!currentUser) return showOutput('Log in first.');
+  if (!navigator.geolocation) return showOutput('Geolocation not supported.');
+  navigator.geolocation.getCurrentPosition(async function(pos) {
+    const tag = {
+      userUid: currentUser.uid,
+      type: type,
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude,
+      time: Date.now()
+    };
+    await db.collection('places').add(tag);
+    showOutput(`${type === 'safe' ? 'Safe' : 'Unsafe'} place tagged at ${tag.lat}, ${tag.lng}`);
+  }, err => showOutput('Location error: ' + err.message));
+}
+$.tagSafeBtn.onclick = ()=> tagPlace('safe');
+$.tagUnsafeBtn.onclick = ()=> tagPlace('unsafe');
+
+$.viewSafePlacesBtn.onclick = async function() {
+  if (!currentUser) return showOutput('Log in first.');
+  let msg = 'Your tagged places:\n';
+  const snaps = await db.collection('places').where('userUid','==',currentUser.uid).orderBy('time','desc').limit(10).get();
+  if (snaps.empty) return showOutput('No places tagged yet!');
+  snaps.forEach(doc=>{
+    let p = doc.data();
+    let t = new Date(p.time).toLocaleString();
+    msg += `• [${p.type}] (${p.lat.toFixed(4)},${p.lng.toFixed(4)}) at ${t}\n`;
   });
   showOutput(msg);
 };
 
-// ==== 6. Map: Show Location + Markers for Safe/Unsafe Places ====
-async function showOnMap(){
-  if(!currentUser || !window.google) return;
-  let mapDiv = $("map");
-  let map = new google.maps.Map(mapDiv, {
-    zoom: 13, center: {lat:28.6139, lng:77.2090}
-  });
-  // Set user current location
-  if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(pos=>{
-      let myLatLng = {lat: pos.coords.latitude, lng: pos.coords.longitude};
-      map.setCenter(myLatLng);
-      new google.maps.Marker({position:myLatLng, map, label: 'Me'});
-    });
-  }
-  // Show tagged places for this user
-  let pl = await db.collection("places").where("uid","==",currentUser.uid).get();
-  pl.forEach(doc=>{
-    let d = doc.data();
-    new google.maps.Marker({
-      position: {lat: d.lat, lng: d.lng},
-      map,
-      label: d.type==='safe'? 'S':'U',
-      icon: d.type==='safe'? 'http://maps.google.com/mapfiles/ms/icons/green-dot.png':'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
-    });
-  });
-}
+// --- Ready! ---
+window.onload = ()=>showLoggedInUI(false);
 
-// Tag safe
-$('tagSafeBtn').onclick = () => tagPlace('safe');
-$('tagUnsafeBtn').onclick = () => tagPlace('unsafe');
-function tagPlace(type){
-  if(!currentUser) return showOutput("Log in first.");
-  if(!navigator.geolocation) return showOutput('Geolocation not supported.');
-  navigator.geolocation.getCurrentPosition(async pos=>{
-    let lat = pos.coords.latitude, lng = pos.coords.longitude;
-    await db.collection("places").add({uid:currentUser.uid, type, lat, lng, time: Date.now()});
-    showOutput(`${type==='safe'?'Safe':'Unsafe'} place tagged: (${lat.toFixed(4)},${lng.toFixed(4)})`);
-    showOnMap();
-  },err=>showOutput("Unable to tag: "+err.message));
-}
 
-// ==== 7. Fake Call & Alarm ====
-$('fakeCallBtn').onclick = function() {
-  let call = new Audio("https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa41f7.mp3");
-  call.play().then(()=>showOutput('Fake call ringing!'))
-    .catch(err=>showOutput("Can't play sound: " + err));
-};
-$('alarmBtn').onclick = function() {
-  let alarm = new Audio("https://cdn.pixabay.com/audio/2022/08/20/audio_12c7b0e7c9.mp3");
-  alarm.play().then(()=>showOutput('Alarm sounding!'))
-    .catch(err=>showOutput("Can't play sound: " + err));
-};
+
+
 
 
 
