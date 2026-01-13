@@ -7,7 +7,9 @@ console.log('Testing $ shortcut:', $('loginBtn'));
 showOutput('If you see this text, $ is working!');
 
 function showOutput(msg) {
-  $('output').innerText = msg;
+  if(document.getElementById('output')) {
+    document.getElementById('output').innerText = msg;
+  }
 }
 
 // UI: show section
@@ -201,6 +203,7 @@ $.viewSafePlacesBtn.onclick = async function() {
 
 // --- Ready! ---
 window.onload = ()=>showLoggedInUI(false);
+
 
 
 
